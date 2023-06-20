@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>玩家等待屋</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+
+        .card {
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            width: 94%;
+            padding: 10px;
+            margin: 0 auto 10px;
+            display: block;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>加入房间</h1>
+        <label for="username">名字</label>
+        <input type="text" id="username" placeholder="输入名字">
+        <button id="joinGameBtn">加入</button>
+        <div id="waitingMsg" style="display: none">等待游戏开始...</div>
+    </div>
+
+    <!-- Stop -->
+
+    <script>
+        var create_res;
+        $(document).ready(function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            var room_id = urlParams.get('room_id');
+
+            // Handle "Join Game" button click
+            $('#joinGameBtn').click(function() {
+                var username = $('#username').val();
+                
+
+
+                // Call create_user.php to create a new user
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/create_user.php',
+                    type: 'POST',
+                    data: {
+                        username: username,
+                        room_id: room_id
+                    },
+                    success: function(response) {
+                        console.log("Created user", response);
+                        create_res = response;
+                        $('#joinGameBtn'). prop('disabled', true);
+                        $('#waitingMsg').show();
+                        $('#joinGameBtn').hide();
+                        checkRoomStatus();
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                    }
+                });
+            });
+
+
+
+            // Function to check room status
+            function checkRoomStatus() {
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                    type: 'GET',
+                    data: {
+                        room_id: room_id
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        console.log("Checking status", response);
+                        var status = response.status;
+                        if (status === 'started') {
+                            // Game has started, redirect to client_question.html
+                            window.location.href = `client_question.html?room_id=${room_id}&user_id=${create_res.user_id}`;
+                        } else if(status === 'waiting') {
+                            // Game not started yet, show waiting message and continue checking
+                            $('#waitingMessage').show();
+                            setTimeout(checkRoomStatus, 3000); // Check again after 3 seconds
+                        } else {
+                            alert("invalid room status", response.status);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

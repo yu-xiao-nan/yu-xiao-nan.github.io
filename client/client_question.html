@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>题目中</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #000000;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .quiz-container {
+            border: 2px solid #000000;
+            border-radius: 5px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #question {
+            font-size: 20px;
+            margin-bottom: 40px;
+        }
+
+        #answers {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .answer-button {
+            font-size: 16px;
+            margin-bottom: 10px;
+            width: 300px;
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 2px solid #000000;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .answer-button:hover {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+
+        .answer-button.selected {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+
+        #countdown {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        #result {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        #waitingMessage {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>题目:</h1>
+        <div id="question"></div>
+
+        <h3>选项:</h3>
+        <div id="answers"></div>
+
+        <h2>倒计时:</h2>
+        <div id="countdown">10</div>
+
+        <div id="yourAns"></div>
+
+        <div id="result" style="display: none;"></div>
+
+        <div id="waitingMessage" style="display: none;">等待下一个问题...</div>
+    </div>
+    
+
+    <!-- Stop here  -->
+    <script>
+        const MAX_TIME = 10;
+        $(document).ready(async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            var room_id = urlParams.get('room_id');
+            var user_id = urlParams.get('user_id');
+            var countdown = MAX_TIME;
+            var interval;
+            var question_res;
+            var room_res;
+            var selected_letter;
+
+            // Fetch question and answers
+            await fetchQuestion();
+
+            // Start countdown
+            startCountdown();
+
+            // Fetch question and answers function
+            function fetchQuestion() {
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/fetch_question.php',
+                    type: 'GET',
+                    data: {
+                        room_id: room_id
+                    },
+                    success: function(response) {
+                        var question = response.question;
+                        var answers = [response.A, response.B, response.C, response.D];
+                        question_res = response;
+
+                        $('.answer-button').removeClass('selected');
+                        $('#question').text(question);
+                        $('#answers').empty();
+
+                        $.each(answers, function(index, answer) {
+                            var answerButton = $('<button class="answer-button">' + answer + '</button>');
+                            answerButton.on('click', function() {
+                                selectAnswer(index);
+                            });
+                            $('#answers').append(answerButton);
+                        });
+
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                    }
+                });
+            }
+
+            // Start countdown
+            function startCountdown() {
+                countdown = MAX_TIME;
+                $('#countdown').text(countdown);
+                interval = setInterval(function() {
+                    countdown--;
+                    $('#countdown').text(countdown);
+
+                    if (countdown === 0) {
+                        clearInterval(interval);
+                        showResult();
+                        checkRoomStatus();
+                    }
+                }, 1000);
+            }
+            
+            function selectAnswer(answerIndex) {
+                $('.answer-button').removeClass('selected');
+                selected_letter = String.fromCharCode(answerIndex + 'A'.charCodeAt(0));
+                $('#selectedAnswer').val(selected_letter);
+                $('#yourAns').text("你的选择: " + selected_letter);
+                sendAnswer(selected_letter);
+                $(this).addClass('selected');
+            }
+
+            // Show result
+            function showResult() {
+                $('.answer-button').off('click');
+                $('#result').text(question_res.answer === selected_letter ? '正确! 答案是 ' + question_res.answer : '错误，答案是 ' + question_res.answer);
+                $('#result').show();
+            }
+
+            // Send the user answer to the backend for validation
+            function sendAnswer(answer) {
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/record_answer.php',
+                    type: 'POST',
+                    data: {
+                        room_id: room_id,
+                        user_id: user_id,
+                        answer: answer,
+                        question_id: question_res.question_id
+                    },
+                    success: function(response) {
+                        console.log("Sent", answer, "question id", question_res.question_id);
+                        console.log("Received", response);
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                        $('#result').text('Error occurred while processing your answer.');
+                    }
+                });
+            }
+
+            // Function to check room status
+            function checkRoomStatus() {
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                    type: 'GET',
+                    data: {
+                        room_id: room_id
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        var status = response.status;
+                        room_res = response;
+                        if (status === 'started') {
+                            $('#waitingMessage').hide();
+                            fetchQuestion();
+                            startCountdown();
+                        } else if(status === 'waiting') {
+                            $('#waitingMessage').show();
+                            setTimeout(checkRoomStatus, 3000); // Check again after 3 seconds
+                        } else if(status === 'finished') {
+                            window.location.href = 'client_finish.html?room_id=' + room_id + '&user_id=' + user_id;
+                        } else {
+                            alert("Invalid room status.", response);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

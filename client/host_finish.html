@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>颁奖台</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #FFFFFF;
+            color: #000000;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .leaderboard-container {
+            border: 2px solid #000000;
+            border-radius: 5px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #000000;
+            padding: 10px;
+            width: 50%; /* Equal width for table columns */
+        }
+
+        th {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+
+        #deleteGame, #goHome {
+            font-size: 16px;
+            background-color: #FFFFFF;
+            color: #000000;
+            border: 2px solid #000000;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            width: 50%; /* Equal width for buttons */
+        }
+
+        #deleteGame:hover, #goHome:hover {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+
+
+<body>
+    <div class="leaderboard-container">
+        <div id="leaderboard"></div>
+        <button id="deleteGame">结束游戏</button>
+        <div id="endMessage"></div>
+    </div>
+
+    <!-- Stop here -->
+    
+    <script>
+        var question_cnt;
+        $(document).ready(function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var room_id = urlParams.get("room_id");
+
+            // Fetch user responses for all questions
+            $.ajax({
+                url: 'http://southisland.asuscomm.com:8000/server/fetch_all_users.php',
+                method: "GET",
+                data: { room_id: room_id },
+                dataType: "json",
+                success: function(response) {
+                    console.log("Fetching all user responses:")
+                    console.log(response)
+
+                    // Fetch all answers
+                    $.ajax({
+                        url: 'http://southisland.asuscomm.com:8000/server/fetch_answers.php',
+                        method: "GET",
+                        dataType: "json",
+                        success: function(answers) {
+
+                            console.log("Fetching question set answers")
+                            console.log(answers)
+                            // Process user responses and calculate scores
+                            var users = [];
+                            question_cnt = Object.keys(answers).length;
+                            users_cnt = Object.keys(response).length;
+                            console.log("Get users cnt", users_cnt, ", num questions", question_cnt);
+
+                            for (var user_id in response) {
+                                var dic = response[user_id];
+                                var cur_name = dic["username"];
+                                var userResponses = response[user_id];
+                                var correctCount = calculateCorrectCount(userResponses, answers);
+                                users.push({
+                                    user_id: user_id,
+                                    user_name: cur_name,
+                                    correctCount: correctCount
+                                });
+                            }
+
+                            // Sort users by correct count in descending order
+                            users.sort(function(a, b) {
+                                return b.correctCount - a.correctCount;
+                            });
+
+                            // Display user scores and rankings
+                            displayUserScores(users);
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Error fetching answers: " + error);
+                        }
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error fetching user responses: " + error);
+                }
+            });
+
+            // Function to extract room_id from URL
+            function getRoomIdFromUrl() {
+                var urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get("room_id");
+            }
+
+            // Function to calculate the number of correct responses for a user
+            function calculateCorrectCount(userResponses, answers) {
+                var correctCount = 0;
+                for (var question_id in answers) {
+                    var q_str = "q_" + question_id;
+                    if (userResponses[q_str] === answers[question_id]) {
+                        correctCount++;
+                    }
+                }
+                return correctCount;
+            }
+
+            // Function to display user scores and rankings
+            function displayUserScores(users) {
+                var leaderboardContainer = $("#leaderboard");
+                var leaderboardHtml = "<h2>颁奖台</h2>";
+                leaderboardHtml += "<table>";
+                leaderboardHtml += "<tr><th>玩家</th><th>答对数量</th></tr>";
+                for (var i = 0; i < users.length; i++) {
+                    var user = users[i];
+                    leaderboardHtml += "<tr>";
+                    leaderboardHtml += "<td>" + user.user_name + "</td>";
+                    leaderboardHtml += "<td>" + user.correctCount + "</td>";
+                    leaderboardHtml += "</tr>";
+                }
+                leaderboardHtml += "</table>";
+                leaderboardContainer.html(leaderboardHtml);
+            }
+
+            $('#deleteGame').click(async function(){
+                response = await fetch('http://southisland.asuscomm.com:8000/server/delete_game.php');
+                $('#endMessage').text("Game deleted!");
+                window.location.href = '../index.html';
+            })
+
+        });
+    </script>
+</body>
+
+</html>

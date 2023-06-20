@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>房间问题中</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #F8F8F8;
+        }
+
+        #container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #FFFFFF;
+            border: 1px solid #000000;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 20px;
+            color: #000000;
+        }
+
+        #question {
+            font-size: 20px;
+            margin-bottom: 40px;
+            color: #000000;
+        }
+
+        #answers {
+            list-style-type: none;
+            padding: 0;
+            margin: 40px 0;
+        }
+
+        #answers li {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #000000;
+            background-color: #EEEEEE;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: left;
+        }
+
+        #countdown {
+            font-size: 36px;
+            font-weight: bold;
+            color: #000000;
+            margin: 40px 0;
+        }
+
+        #answeredCount {
+            font-size: 18px;
+            margin-bottom: 40px;
+            color: #000000;
+        }
+
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: #000000;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 5px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        .answerBar {
+            height: 20px;
+            margin-bottom: 5px;
+            border: 1px solid black;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .answerBar .answerLabel {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black;
+        }
+
+        .answerBar .answerCount {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black;
+        }
+
+        .answerBar .progressFill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: black;
+            width: 0;
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1 id="questionTitle">题目:</h1>
+        <div id="question"></div>
+
+        <ul id="answers">
+            <li id="answerA"></li>
+            <li id="answerB"></li>
+            <li id="answerC"></li>
+            <li id="answerD"></li>
+        </ul>
+
+        <h2> 倒计时</h2>
+        <div id="countdown">10</div>
+        <h2> 作答人数</h2>
+        <h3 id="answeredCount"></h3>
+
+        <!-- New Progress Bar -->
+        <button id="viewResultsBtn" style="display: none;">查看结果</button>
+        <div id="percentCorrect" style="display: none;">正确率: </div>
+
+        <div id="answerBars" style="display: none;">
+            <div class="answerBar" id="barA">
+              <div class="progressFill"></div>
+              <div class="answerLabel" id="labelA"></div>
+              <div class="answerCount" id="countA"></div>
+            </div>
+            <div class="answerBar" id="barB">
+              <div class="progressFill"></div>
+              <div class="answerLabel" id="labelB"></div>
+              <div class="answerCount" id="countB"></div>
+            </div>
+            <div class="answerBar" id="barC">
+              <div class="progressFill"></div>
+              <div class="answerLabel" id="labelC"></div>
+              <div class="answerCount" id="countC"></div>
+            </div>
+            <div class="answerBar" id="barD">
+              <div class="progressFill"></div>
+              <div class="answerLabel" id="labelD"></div>
+              <div class="answerCount" id="countD"></div>
+            </div>
+        </div>
+
+        <button id="nextQuestionBtn" style="display: none;">下一题</button>
+
+        <button id="finishGame" style="display: none;">颁奖台</button>
+        <button id="restartBtn">退出游戏</button>
+    </div>
+
+    <!-- Don't touch below -->
+
+    <script>
+        const MAX_TIME = 10;
+        var urlParams = new URLSearchParams(window.location.search);
+        var room_id = urlParams.get("room_id");
+        var countdown = MAX_TIME;
+        var interval;
+        var answer_interval;
+        var question_res;
+        var room_res;
+        var response_res;
+        // Fetch the question from the server
+        function fetchQuestion() {
+            console.log("Host fetching question...");
+            $.ajax({
+                url: 'http://southisland.asuscomm.com:8000/server/fetch_question.php',
+                type: 'GET',
+                data: {
+                    room_id: room_id,
+                },
+                success: function(response) {
+                    var question = response.question;
+                    var answerA = response.A;
+                    var answerB = response.B;
+                    var answerC = response.C;
+                    var answerD = response.D;
+
+                    // Display the question and answers
+                    $('#question').text(question);
+                    $('#answerA').text('A. ' + answerA);
+                    $('#answerB').text('B. ' + answerB);
+                    $('#answerC').text('C. ' + answerC);
+                    $('#answerD').text('D. ' + answerD);
+                    $('#questionTitle').text('题目 ' + response.question_id);
+                    question_res = response;
+                    console.log("Fetched question", question_res.question_id);
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+        }
+
+        // Fetch the number of users who answered the question
+        function fetchAnsweredCount() {
+            $.ajax({
+                url: 'http://southisland.asuscomm.com:8000/server/response_status.php',
+                type: 'GET',
+                data: {
+                    room_id: room_id,
+                },
+                dataType: 'json',
+                success: function(response) {
+                    $('#answeredCount').text(response.answered_count);
+                    response_res = response;
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+        }
+        
+        // Function to modify the room status
+        function modifyStatus(newStatus) {
+            $.ajax({
+                url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                type: 'GET',
+                data: {
+                    room_id: room_id,
+                    new_status: newStatus
+                },
+                success: function(response) {
+                    console.log("Changed status to", newStatus, response);
+                    room_res = response;
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+        }
+
+        async function nextQuestion(){
+            var newStatus = "started";
+            response = await fetch('http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}&incr_question_id=true');
+            room_res = await response.json()
+            fetchQuestion();
+
+            countdown = MAX_TIME;
+            $('#countdown').text(countdown);
+            $('#nextQuestionBtn').hide();
+            $('#viewResultsBtn').hide();
+            startCountdown();
+
+            
+        }
+
+        function startCountdown() {
+            interval = setInterval(function() {
+                countdown--;
+                $('#countdown').text(countdown);
+                fetchAnsweredCount();
+                if (countdown === 0) {
+                    clearInterval(interval);
+                    modifyStatus('waiting');
+
+                    if(room_res.cur_question_id >= room_res.total_questions){
+                        $('#nextQuestionBtn').hide();
+                        $('#viewResultsBtn').show();
+                        $('#finishGame').show();
+                    }
+                    else{
+                        $('#viewResultsBtn').show();
+                        $('#nextQuestionBtn').show();
+                    }
+
+                }
+            }, 1000);
+        }
+        
+        /* Begin */
+        $(document).ready(function() {
+            // Start the question
+            modifyStatus("started");
+
+            // Fetch and display the first question
+            fetchQuestion();
+
+            // Start the countdown
+            startCountdown();
+
+            // Handle the "Next Question" button click
+            $('#nextQuestionBtn').click(function(){
+                nextQuestion();
+            });
+
+            // Handle the "View Results" button click
+            $('#viewResultsBtn').click(async function() {
+                if ($('#answerBars').is(":visible")) {
+                    $('#answerBars').hide(); // Hide the answer bars when hiding the results
+                } else {
+                    await fetchAnsweredCount();
+
+                    response_res.answered_A = 1
+                    response_res.answered_B = 7
+                    response_res.answered_C = 2
+                    response_res.answered_D = 0
+                    response_res.answered_count = 10
+
+                    // Calculate the percentage for each answer
+                    var total = response_res.answered_count;
+                    var percentA = (response_res.answered_A / total) * 100 + 0.001;
+                    var percentB = (response_res.answered_B / total) * 100 + 0.001;
+                    var percentC = (response_res.answered_C / total) * 100 + 0.001;
+                    var percentD = (response_res.answered_D / total) * 100 + 0.001;
+
+                    // Update the width of the answer bars
+                    $('#barA .progressFill').css('width', percentA + '%');
+                    $('#barB .progressFill').css('width', percentB + '%');
+                    $('#barC .progressFill').css('width', percentC + '%');
+                    $('#barD .progressFill').css('width', percentD + '%');
+
+                    // Set the answer label and count for each bar
+                    $('#labelA').text('A - ' + response_res.answered_A);
+                    $('#labelB').text('B - ' + response_res.answered_B);
+                    $('#labelC').text('C - ' + response_res.answered_C);
+                    $('#labelD').text('D - ' + response_res.answered_D);
+
+                    var percent = response_res.correct_count / response_res.answered_count * 100;
+                    $('#percentCorrect').text("正确率：" + percent + "%.");
+                    $('#percentCorrect').show();
+                    $('#answerBars').show(); // Show the answer bars
+                }
+            });
+
+            $('#finishGame').click(async function(){
+                var newStatus = "finished";
+                response = await fetch('http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}');
+                room_res = await response.json();
+                console.log("Changed status to", newStatus, response);
+                window.location.href = 'host_finish.html?room_id=' + room_id;
+            })
+
+            $('#restartBtn').click(async function(){
+                response = await fetch('http://southisland.asuscomm.com:8000/server/delete_game.php');
+                console.log("deleted");
+                window.location.href = 'index.html';
+            })
+
+        });
+    </script>
+</body>
+</html>

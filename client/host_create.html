@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>房主创建房间</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f2f2f2;
+        }
+
+        .card {
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .card h1 {
+            margin: 0;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .card input[type="text"] {
+            width: 94%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .card button {
+            padding: 15px 30px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .card #creatingMsg {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>欢迎来到答题屋</h1>
+        <input type="text" id="roomId" placeholder="输入房间号">
+        <button id="createRoomBtn">创建房间</button>
+        <div id="creatingMsg">创建中...</div>
+    </div>
+
+
+    <!-- Don't touch -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            console.log("Host create page ready!")
+
+
+            var room_id = '';
+            var cur_uid = -1;
+
+            // Handle "Create Room" button click
+            $('#createRoomBtn').click(function() {
+                room_id = $('#roomId').val();
+                $('#creatingMsg').show();
+
+                // Call create_questions.php to create questions for the room
+                $.ajax({
+                    url: 'http://southisland.asuscomm.com:8000/server/create_questions.php',
+                    type: 'POST',
+                    data: {
+                        room_id: room_id
+                    },
+                    success: function(response) {
+                        $('#creatingMsg').hide();
+                        console.log(response);
+                        window.location.href = 'host_landing.html?room_id=' + room_id;
+                    },
+                    error: function(xhr, status, error) {
+                        console.log("Error:", error);
+                    }
+                });
+            });
+
+            
+
+        });
+    </script>
+</body>
+</html>
