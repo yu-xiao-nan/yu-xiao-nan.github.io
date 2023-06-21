@@ -177,6 +177,8 @@
         var question_res;
         var room_res;
         var response_res;
+        var global_cnt_dic = {};
+        var global_ans_cnt = 0;
         // Fetch the question from the server
         function fetchQuestion() {
             console.log("Host fetching question...");
@@ -212,15 +214,32 @@
         // Fetch the number of users who answered the question
         function fetchAnsweredCount() {
             $.ajax({
-                url: 'http://southisland.asuscomm.com:8000/server/response_status.php',
+                url: 'http://southisland.asuscomm.com:8000/server/fetch_all_users.php',
                 type: 'GET',
                 data: {
                     room_id: room_id,
                 },
                 dataType: 'json',
                 success: function(response) {
-                    $('#answeredCount').text(response.answered_count);
                     response_res = response;
+
+                    var cur_q = 'q_' + question_res.question_id;
+                    var ans_cnt = 0;
+                    var cnt_dic = { A: 0, B: 0, C: 0, D: 0 };
+                    for(var user_id in response){
+                        var dic = response[user_id];
+                        var cur_choice = dic[cur_q];
+                        if(cur_choice){
+                            cnt_dic[cur_choice] += 1;
+                            ans_cnt += 1;
+                        }
+                    }
+                    // console.log("Count dic");
+                    // console.log(cnt_dic);
+                    $('#answeredCount').text(ans_cnt);
+                    global_cnt_dic = cnt_dic;
+                    global_ans_cnt = ans_cnt;
+                    
                 },
                 error: function(xhr, status, error) {
                     console.log("Error:", error);
@@ -248,15 +267,17 @@
         }
 
         async function nextQuestion(){
+            console.log("Fetching next question");
             var newStatus = "started";
-            response = await fetch('http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}&incr_question_id=true');
+            response = await fetch(`http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}&incr_question_id=true`);
             room_res = await response.json()
-            fetchQuestion();
+            await fetchQuestion();
 
             countdown = MAX_TIME;
             $('#countdown').text(countdown);
             $('#nextQuestionBtn').hide();
             $('#viewResultsBtn').hide();
+            $('#answerBars').hide();
             startCountdown();
 
             
@@ -308,11 +329,11 @@
                 } else {
                     await fetchAnsweredCount();
 
-                    response_res.answered_A = 1
-                    response_res.answered_B = 7
-                    response_res.answered_C = 2
-                    response_res.answered_D = 0
-                    response_res.answered_count = 10
+                    response_res.answered_A = global_cnt_dic['A'];
+                    response_res.answered_B = global_cnt_dic['B'];
+                    response_res.answered_C = global_cnt_dic['C'];
+                    response_res.answered_D = global_cnt_dic['D'];
+                    response_res.answered_count = global_ans_cnt;
 
                     // Calculate the percentage for each answer
                     var total = response_res.answered_count;
@@ -333,16 +354,16 @@
                     $('#labelC').text('C - ' + response_res.answered_C);
                     $('#labelD').text('D - ' + response_res.answered_D);
 
-                    var percent = response_res.correct_count / response_res.answered_count * 100;
-                    $('#percentCorrect').text("正确率：" + percent + "%.");
-                    $('#percentCorrect').show();
+                    // var percent = response_res.correct_count / response_res.answered_count * 100;
+                    // $('#percentCorrect').text("正确率：" + percent + "%.");
+                    // $('#percentCorrect').show();
                     $('#answerBars').show(); // Show the answer bars
                 }
             });
 
             $('#finishGame').click(async function(){
                 var newStatus = "finished";
-                response = await fetch('http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}');
+                response = await fetch(`http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}`);
                 room_res = await response.json();
                 console.log("Changed status to", newStatus, response);
                 window.location.href = 'host_finish.html?room_id=' + room_id;
