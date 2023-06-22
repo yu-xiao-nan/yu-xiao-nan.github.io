@@ -225,6 +225,9 @@
                         room_res = response;
                         if (status === 'started') {
                             $('#waitingMessage').hide();
+                            $('.answer-button').removeClass('selected');
+                            $('#answers').empty();
+                            console.log("Fetching new question, removing class");
                             fetchQuestion();
                             startCountdown();
                         } else if(status === 'waiting') {
@@ -238,6 +241,7 @@
                     },
                     error: function(xhr, status, error) {
                         console.log("Error:", error);
+                        window.location.href = 'client_exit.html';
                     }
                 });
             }

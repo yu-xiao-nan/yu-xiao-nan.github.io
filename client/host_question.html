@@ -211,41 +211,6 @@
             });
         }
 
-        // Fetch the number of users who answered the question
-        function fetchAnsweredCount() {
-            $.ajax({
-                url: backendDomain + 'server/fetch_all_users.php',
-                type: 'GET',
-                data: {
-                    room_id: room_id,
-                },
-                dataType: 'json',
-                success: function(response) {
-                    response_res = response;
-
-                    var cur_q = 'q_' + question_res.question_id;
-                    var ans_cnt = 0;
-                    var cnt_dic = { A: 0, B: 0, C: 0, D: 0 };
-                    for(var user_id in response){
-                        var dic = response[user_id];
-                        var cur_choice = dic[cur_q];
-                        if(cur_choice){
-                            cnt_dic[cur_choice] += 1;
-                            ans_cnt += 1;
-                        }
-                    }
-                    // console.log("Count dic");
-                    // console.log(cnt_dic);
-                    $('#answeredCount').text(ans_cnt);
-                    global_cnt_dic = cnt_dic;
-                    global_ans_cnt = ans_cnt;
-                    
-                },
-                error: function(xhr, status, error) {
-                    console.log("Error:", error);
-                }
-            });
-        }
         
         // Function to modify the room status
         function modifyStatus(newStatus) {
@@ -269,9 +234,8 @@
         async function nextQuestion(){
             console.log("Fetching next question");
             var newStatus = "started";
-            response = await fetch(`http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}&incr_question_id=true`);
-            room_res = await response.json()
             await fetchQuestion();
+            fetch(backendDomain + `server/room_status.php?room_id=${room_id}&new_status=${newStatus}&incr_question_id=true`);
 
             countdown = MAX_TIME;
             $('#countdown').text(countdown);
@@ -294,6 +258,7 @@
                         $('#nextQuestionBtn').hide();
                         $('#viewResultsBtn').show();
                         $('#finishGame').show();
+                        setTimeout(fetchAnsweredCount(), 2000);
                     }
                     else{
                         $('#viewResultsBtn').show();
@@ -302,6 +267,43 @@
 
                 }
             }, 1000);
+        }
+
+        function fetchAnsweredCount() {
+            return new Promise(function(resolve, reject) {
+                $.ajax({
+                url: backendDomain + 'server/fetch_all_users.php',
+                type: 'GET',
+                data: {
+                    room_id: room_id,
+                },
+                dataType: 'json',
+                success: function(response) {
+                    response_res = response;
+
+                    var cur_q = 'q_' + question_res.question_id;
+                    var ans_cnt = 0;
+                    var cnt_dic = { A: 0, B: 0, C: 0, D: 0 };
+                    for (var user_id in response) {
+                    var dic = response[user_id];
+                    var cur_choice = dic[cur_q];
+                    if (cur_choice) {
+                        cnt_dic[cur_choice] += 1;
+                        ans_cnt += 1;
+                    }
+                    }
+                    $('#answeredCount').text(ans_cnt);
+                    global_cnt_dic = cnt_dic;
+                    global_ans_cnt = ans_cnt;
+                    
+                    resolve(); // Resolve the promise when the response is received
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                    reject(error); // Reject the promise if an error occurs
+                }
+                });
+            });
         }
         
         /* Begin */
@@ -321,47 +323,51 @@
             });
 
             // Handle the "View Results" button click
-            $('#viewResultsBtn').click(async function() {
+            $('#viewResultsBtn').click(function() {
                 if ($('#answerBars').is(":visible")) {
                     $('#answerBars').hide(); // Hide the answer bars when hiding the results
                 } else {
-                    await fetchAnsweredCount();
+                    fetchAnsweredCount().then(function(){
+                        response_res.answered_A = global_cnt_dic['A'];
+                        response_res.answered_B = global_cnt_dic['B'];
+                        response_res.answered_C = global_cnt_dic['C'];
+                        response_res.answered_D = global_cnt_dic['D'];
+                        response_res.answered_count = global_ans_cnt;
+    
+                        // Calculate the percentage for each answer
+                        var total = response_res.answered_count;
+                        var percentA = (response_res.answered_A / total) * 100 + 0.001;
+                        var percentB = (response_res.answered_B / total) * 100 + 0.001;
+                        var percentC = (response_res.answered_C / total) * 100 + 0.001;
+                        var percentD = (response_res.answered_D / total) * 100 + 0.001;
+    
+                        // Update the width of the answer bars
+                        $('#barA .progressFill').css('width', percentA + '%');
+                        $('#barB .progressFill').css('width', percentB + '%');
+                        $('#barC .progressFill').css('width', percentC + '%');
+                        $('#barD .progressFill').css('width', percentD + '%');
+    
+                        // Set the answer label and count for each bar
+                        $('#labelA').text('A - ' + response_res.answered_A);
+                        $('#labelB').text('B - ' + response_res.answered_B);
+                        $('#labelC').text('C - ' + response_res.answered_C);
+                        $('#labelD').text('D - ' + response_res.answered_D);
+    
+                        // var percent = response_res.correct_count / response_res.answered_count * 100;
+                        // $('#percentCorrect').text("正确率：" + percent + "%.");
+                        // $('#percentCorrect').show();
+                        $('#answerBars').show(); // Show the answer bars
+                    })
+                    .catch(function(error) {
+                        console.log("Error:", error);
+                    });
 
-                    response_res.answered_A = global_cnt_dic['A'];
-                    response_res.answered_B = global_cnt_dic['B'];
-                    response_res.answered_C = global_cnt_dic['C'];
-                    response_res.answered_D = global_cnt_dic['D'];
-                    response_res.answered_count = global_ans_cnt;
-
-                    // Calculate the percentage for each answer
-                    var total = response_res.answered_count;
-                    var percentA = (response_res.answered_A / total) * 100 + 0.001;
-                    var percentB = (response_res.answered_B / total) * 100 + 0.001;
-                    var percentC = (response_res.answered_C / total) * 100 + 0.001;
-                    var percentD = (response_res.answered_D / total) * 100 + 0.001;
-
-                    // Update the width of the answer bars
-                    $('#barA .progressFill').css('width', percentA + '%');
-                    $('#barB .progressFill').css('width', percentB + '%');
-                    $('#barC .progressFill').css('width', percentC + '%');
-                    $('#barD .progressFill').css('width', percentD + '%');
-
-                    // Set the answer label and count for each bar
-                    $('#labelA').text('A - ' + response_res.answered_A);
-                    $('#labelB').text('B - ' + response_res.answered_B);
-                    $('#labelC').text('C - ' + response_res.answered_C);
-                    $('#labelD').text('D - ' + response_res.answered_D);
-
-                    // var percent = response_res.correct_count / response_res.answered_count * 100;
-                    // $('#percentCorrect').text("正确率：" + percent + "%.");
-                    // $('#percentCorrect').show();
-                    $('#answerBars').show(); // Show the answer bars
                 }
             });
 
             $('#finishGame').click(async function(){
                 var newStatus = "finished";
-                response = await fetch(`http://southisland.asuscomm.com:8000/server/room_status.php?room_id=${room_id}&new_status=${newStatus}`);
+                response = await fetch(backendDomain + `server/room_status.php?room_id=${room_id}&new_status=${newStatus}`);
                 room_res = await response.json();
                 console.log("Changed status to", newStatus, response);
                 window.location.href = 'host_finish.html?room_id=' + room_id;
@@ -370,7 +376,7 @@
             $('#restartBtn').click(async function(){
                 response = await fetch(backendDomain + 'server/delete_game.php');
                 console.log("deleted");
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             })
 
         });

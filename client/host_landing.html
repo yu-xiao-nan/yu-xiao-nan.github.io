@@ -147,7 +147,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             var room_id = urlParams.get('room_id');
 
-            var realUrl = 'https://yu-xiaonan.github.io/client/client_landing.html?room_id=' + room_id;
+            var realUrl = frontendDomain + 'client_landing.html?room_id=' + room_id;
             $('.url').html(realUrl);
             var qrcodeContainer = $('#qrcode');
             qrcodeContainer.qrcode(realUrl);
@@ -203,7 +203,7 @@
             $('#reGameBtn').click(async function(){
                 response = await fetch(backendDomain + 'server/delete_game.php');
                 console.log("done delete");
-                window.location.href = 'index.html';
+                window.location.href = '../index.html';
             })
 
             $(".toggle-url").click(function() {
