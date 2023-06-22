@@ -65,6 +65,7 @@
 
     <!-- Don't touch -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src = "globals.js"></script>
     <script>
         $(document).ready(function() {
             console.log("Host create page ready!")
@@ -80,7 +81,7 @@
 
                 // Call create_questions.php to create questions for the room
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/create_questions.php',
+                    url: backendDomain + 'server/create_questions.php',
                     type: 'POST',
                     data: {
                         room_id: room_id

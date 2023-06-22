@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>完成游戏</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src = "globals.js"></script>
     <style>
         body {
             background-color: #FFFFFF;
@@ -64,7 +65,7 @@
             
             
             $.ajax({
-                url: 'http://southisland.asuscomm.com:8000/server/fetch_single_user.php',
+                url: backendDomain + 'server/fetch_single_user.php',
                 method: "GET",
                 data: { room_id: room_id, user_id: user_id },
                 dataType: "json",
@@ -73,7 +74,7 @@
                     user_res = response;
 
                     $.ajax({
-                        url: 'http://southisland.asuscomm.com:8000/server/fetch_answers.php',
+                        url: backendDomain + 'server/fetch_answers.php',
                         method: "GET",
                         dataType: "json",
                         success: function(answers) {

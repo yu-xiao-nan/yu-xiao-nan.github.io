@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>房间问题中</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src = "globals.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -166,9 +167,8 @@
     </div>
 
     <!-- Don't touch below -->
-
+    
     <script>
-        const MAX_TIME = 10;
         var urlParams = new URLSearchParams(window.location.search);
         var room_id = urlParams.get("room_id");
         var countdown = MAX_TIME;
@@ -183,7 +183,7 @@
         function fetchQuestion() {
             console.log("Host fetching question...");
             $.ajax({
-                url: 'http://southisland.asuscomm.com:8000/server/fetch_question.php',
+                url: backendDomain + 'server/fetch_question.php',
                 type: 'GET',
                 data: {
                     room_id: room_id,
@@ -214,7 +214,7 @@
         // Fetch the number of users who answered the question
         function fetchAnsweredCount() {
             $.ajax({
-                url: 'http://southisland.asuscomm.com:8000/server/fetch_all_users.php',
+                url: backendDomain + 'server/fetch_all_users.php',
                 type: 'GET',
                 data: {
                     room_id: room_id,
@@ -250,7 +250,7 @@
         // Function to modify the room status
         function modifyStatus(newStatus) {
             $.ajax({
-                url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                url: backendDomain + 'server/room_status.php',
                 type: 'GET',
                 data: {
                     room_id: room_id,
@@ -368,7 +368,7 @@
             })
 
             $('#restartBtn').click(async function(){
-                response = await fetch('http://southisland.asuscomm.com:8000/server/delete_game.php');
+                response = await fetch(backendDomain + 'server/delete_game.php');
                 console.log("deleted");
                 window.location.href = 'index.html';
             })

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>题目中</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src = "globals.js"></script>
     <style>
         body {
             background-color: #FFFFFF;
@@ -105,7 +106,6 @@
 
     <!-- Stop here  -->
     <script>
-        const MAX_TIME = 10;
         $(document).ready(async function() {
             const urlParams = new URLSearchParams(window.location.search);
             var room_id = urlParams.get('room_id');
@@ -125,7 +125,7 @@
             // Fetch question and answers function
             function fetchQuestion() {
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/fetch_question.php',
+                    url: backendDomain + 'server/fetch_question.php',
                     type: 'GET',
                     data: {
                         room_id: room_id
@@ -138,6 +138,9 @@
                         $('.answer-button').removeClass('selected');
                         $('#question').text(question);
                         $('#answers').empty();
+                        $('#yourAns').empty();
+                        $('#result').hide();
+
 
                         $.each(answers, function(index, answer) {
                             var answerButton = $('<button class="answer-button">' + answer + '</button>');
@@ -189,7 +192,7 @@
             // Send the user answer to the backend for validation
             function sendAnswer(answer) {
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/record_answer.php',
+                    url: backendDomain + 'server/record_answer.php',
                     type: 'POST',
                     data: {
                         room_id: room_id,
@@ -211,7 +214,7 @@
             // Function to check room status
             function checkRoomStatus() {
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                    url: backendDomain + 'server/room_status.php',
                     type: 'GET',
                     data: {
                         room_id: room_id
@@ -226,7 +229,7 @@
                             startCountdown();
                         } else if(status === 'waiting') {
                             $('#waitingMessage').show();
-                            setTimeout(checkRoomStatus, 3000); // Check again after 3 seconds
+                            setTimeout(checkRoomStatus, SET_TIMEOUT_MS); // Check again after 3 seconds
                         } else if(status === 'finished') {
                             window.location.href = 'client_finish.html?room_id=' + room_id + '&user_id=' + user_id;
                         } else {

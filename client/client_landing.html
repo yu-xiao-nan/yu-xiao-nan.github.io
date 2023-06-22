@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>玩家等待屋</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src = "globals.js"></script>
     <style>
         body {
             display: flex;
@@ -82,7 +83,7 @@
 
                 // Call create_user.php to create a new user
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/create_user.php',
+                    url: backendDomain + 'server/create_user.php',
                     type: 'POST',
                     data: {
                         username: username,
@@ -107,7 +108,7 @@
             // Function to check room status
             function checkRoomStatus() {
                 $.ajax({
-                    url: 'http://southisland.asuscomm.com:8000/server/room_status.php',
+                    url: backendDomain + 'server/room_status.php',
                     type: 'GET',
                     data: {
                         room_id: room_id
@@ -122,7 +123,7 @@
                         } else if(status === 'waiting') {
                             // Game not started yet, show waiting message and continue checking
                             $('#waitingMessage').show();
-                            setTimeout(checkRoomStatus, 3000); // Check again after 3 seconds
+                            setTimeout(checkRoomStatus, SET_TIMEOUT_MS); // Check again after 3 seconds
                         } else {
                             alert("invalid room status", response.status);
                         }
